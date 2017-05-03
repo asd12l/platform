@@ -456,7 +456,6 @@ export function clientLogout(redirectTo = '/') {
     ChannelStore.clear();
     stopPeriodicStatusUpdates();
     WebsocketActions.close();
-    localStorage.removeItem('currentUserId');
     window.location.href = redirectTo;
 }
 
