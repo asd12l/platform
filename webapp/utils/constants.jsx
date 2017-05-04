@@ -296,6 +296,14 @@ export const ErrorBarTypes = {
     SITE_URL: 'error_bar.site_url'
 };
 
+export const ScrollTypes = {
+    FREE: 1,
+    BOTTOM: 2,
+    SIDEBBAR_OPEN: 3,
+    NEW_MESSAGE: 4,
+    POST: 5
+};
+
 export const Constants = {
     Preferences,
     SocketEvents,
@@ -328,13 +336,7 @@ export const Constants = {
         POSITION: 'position'
     },
 
-    ScrollTypes: {
-        FREE: 1,
-        BOTTOM: 2,
-        SIDEBBAR_OPEN: 3,
-        NEW_MESSAGE: 4,
-        POST: 5
-    },
+    ScrollTypes,
 
     SPECIAL_MENTIONS: ['all', 'channel', 'here'],
     CHARACTER_LIMIT: 4000,

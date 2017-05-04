@@ -1,52 +1,64 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
+
 import $ from 'jquery';
+import React, {Component, PropTypes} from 'react';
+import ReactDOM from 'react-dom';
+import {FormattedDate, FormattedMessage} from 'react-intl';
+
+import * as ChannelActions from 'actions/channel_actions.jsx';
+import * as GlobalActions from 'actions/global_actions.jsx';
+
+import {createChannelIntroMessage} from 'utils/channel_intro_messages.jsx';
+import {Constants, Preferences, ScrollTypes} from 'utils/constants.jsx';
+import DelayedAction from 'utils/delayed_action.jsx';
+import * as PostUtils from 'utils/post_utils.jsx';
+import * as UserAgent from 'utils/user_agent.jsx';
+import * as Utils from 'utils/utils.jsx';
+
+import PostStore from 'stores/post_store.jsx';
+import PreferenceStore from 'stores/preference_store.jsx';
 
 import Post from './post.jsx';
 import FloatingTimestamp from './floating_timestamp.jsx';
 import ScrollToBottomArrows from './scroll_to_bottom_arrows.jsx';
 import NewMessageIndicator from './new_message_indicator.jsx';
 
-import * as GlobalActions from 'actions/global_actions.jsx';
+export default class PostList extends Component {
+    static propTypes = {
+        postList: PropTypes.object,
+        profiles: PropTypes.object,
+        channelId: PropTypes.string.isRequired,
+        channel: PropTypes.object,
+        currentUser: PropTypes.object,
+        scrollPostId: PropTypes.string,
+        scrollType: PropTypes.number,
+        postListScrolled: PropTypes.func.isRequired,
+        showMoreMessagesTop: PropTypes.bool,
+        showMoreMessagesBottom: PropTypes.bool,
+        lastViewed: PropTypes.number,
+        lastViewedBottom: PropTypes.number,
+        ownNewMessage: PropTypes.bool,
+        postsToHighlight: PropTypes.object,
+        displayNameType: PropTypes.string,
+        displayPostsInCenter: PropTypes.bool,
+        compactDisplay: PropTypes.bool,
+        previewsCollapsed: PropTypes.string,
+        useMilitaryTime: PropTypes.bool.isRequired,
+        isFocusPost: PropTypes.bool,
+        flaggedPosts: PropTypes.object,
+        statuses: PropTypes.object,
+        isBusy: PropTypes.bool
+    };
 
-import {createChannelIntroMessage} from 'utils/channel_intro_messages.jsx';
+    static defaultProps = {
+        lastViewed: 0,
+        lastViewedBottom: Number.MAX_VALUE,
+        ownNewMessage: false
+    };
 
-import * as UserAgent from 'utils/user_agent.jsx';
-import * as Utils from 'utils/utils.jsx';
-import * as PostUtils from 'utils/post_utils.jsx';
-import DelayedAction from 'utils/delayed_action.jsx';
-
-import * as ChannelActions from 'actions/channel_actions.jsx';
-
-import Constants from 'utils/constants.jsx';
-const ScrollTypes = Constants.ScrollTypes;
-
-import PostStore from 'stores/post_store.jsx';
-import PreferenceStore from 'stores/preference_store.jsx';
-
-import {FormattedDate, FormattedMessage} from 'react-intl';
-
-import React from 'react';
-import ReactDOM from 'react-dom';
-
-const Preferences = Constants.Preferences;
-
-export default class PostList extends React.Component {
     constructor(props) {
         super(props);
-
-        this.handleScroll = this.handleScroll.bind(this);
-        this.handleScrollStop = this.handleScrollStop.bind(this);
-        this.isAtBottom = this.isAtBottom.bind(this);
-        this.loadMorePostsTop = this.loadMorePostsTop.bind(this);
-        this.loadMorePostsBottom = this.loadMorePostsBottom.bind(this);
-        this.createPosts = this.createPosts.bind(this);
-        this.updateScrolling = this.updateScrolling.bind(this);
-        this.handleResize = this.handleResize.bind(this);
-        this.scrollToBottom = this.scrollToBottom.bind(this);
-        this.scrollToBottomAnimated = this.scrollToBottomAnimated.bind(this);
-        this.handleKeyDown = this.handleKeyDown.bind(this);
-        this.childComponentDidUpdate = this.childComponentDidUpdate.bind(this);
 
         this.jumpToPostNode = null;
         this.wasAtBottom = true;
@@ -102,14 +114,14 @@ export default class PostList extends React.Component {
         }
     }
 
-    handleKeyDown(e) {
+    handleKeyDown = (e) => {
         if (e.which === Constants.KeyCodes.ESCAPE && $('.popover.in,.modal.in').length === 0) {
             e.preventDefault();
             ChannelActions.setChannelAsRead();
         }
     }
 
-    isAtBottom() {
+    isAtBottom = () => {
         if (!this.refs.postlist) {
             return this.wasAtBottom;
         }
@@ -120,7 +132,7 @@ export default class PostList extends React.Component {
         return this.refs.postlist.clientHeight + this.refs.postlist.scrollTop >= this.refs.postlist.scrollHeight - atBottomMargin;
     }
 
-    handleScroll() {
+    handleScroll = () => {
         // HACK FOR RHS -- REMOVE WHEN RHS DIES
         const childNodes = this.refs.postlistcontent.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
@@ -158,13 +170,13 @@ export default class PostList extends React.Component {
         this.scrollStopAction.fireAfter(Constants.SCROLL_DELAY);
     }
 
-    handleScrollStop() {
+    handleScrollStop = () => {
         this.setState({
             isScrolling: false
         });
     }
 
-    updateFloatingTimestamp() {
+    updateFloatingTimestamp = () => {
         // skip this in non-mobile view since that's when the timestamp is visible
         if (!Utils.isMobile()) {
             return;
@@ -199,7 +211,7 @@ export default class PostList extends React.Component {
         }
     }
 
-    loadMorePostsTop(e) {
+    loadMorePostsTop = (e) => {
         e.preventDefault();
 
         if (this.props.isFocusPost) {
@@ -208,11 +220,11 @@ export default class PostList extends React.Component {
         return GlobalActions.emitLoadMorePostsEvent();
     }
 
-    loadMorePostsBottom() {
+    loadMorePostsBottom = () => {
         GlobalActions.emitLoadMorePostsFocusedBottomEvent();
     }
 
-    createPosts(posts, order) {
+    createPosts = (posts, order) => {
         const postCtls = [];
         let previousPostDay = new Date(0);
         const userId = this.props.currentUser.id;
@@ -428,14 +440,14 @@ export default class PostList extends React.Component {
         return postCtls;
     }
 
-    updateScrolling() {
+    updateScrolling = () => {
         if (this.props.scrollType === ScrollTypes.BOTTOM) {
             this.scrollToBottom();
         } else if (this.props.scrollType === ScrollTypes.NEW_MESSAGE) {
             window.requestAnimationFrame(() => {
                 // If separator exists scroll to it. Otherwise scroll to bottom.
                 if (this.refs.newMessageSeparator) {
-                    var objDiv = this.refs.postlist;
+                    const objDiv = this.refs.postlist;
                     objDiv.scrollTop = this.refs.newMessageSeparator.offsetTop; //scrolls node to top of Div
                 } else if (this.refs.postlist) {
                     this.scrollToBottom();
@@ -482,11 +494,11 @@ export default class PostList extends React.Component {
         }
     }
 
-    handleResize() {
+    handleResize = () => {
         this.updateScrolling();
     }
 
-    scrollToBottom() {
+    scrollToBottom = () => {
         this.animationFrameId = window.requestAnimationFrame(() => {
             if (this.refs.postlist) {
                 this.refs.postlist.scrollTop = this.refs.postlist.scrollHeight;
@@ -494,18 +506,18 @@ export default class PostList extends React.Component {
         });
     }
 
-    scrollToBottomAnimated() {
+    scrollToBottomAnimated = () => {
         if (UserAgent.isIos()) {
             // JQuery animation doesn't work on iOS
             this.refs.postlist.scrollTop = this.refs.postlist.scrollHeight;
         } else {
-            var postList = $(this.refs.postlist);
+            const postList = $(this.refs.postlist);
 
             postList.animate({scrollTop: this.refs.postlist.scrollHeight}, '500');
         }
     }
 
-    getArchivesIntroMessage() {
+    getArchivesIntroMessage = () => {
         return (
             <div className={'channel-intro'}>
                 <h4 className='channel-intro__title'>
@@ -518,7 +530,7 @@ export default class PostList extends React.Component {
         );
     }
 
-    checkAndUpdateScrolling() {
+    checkAndUpdateScrolling = () => {
         if (this.props.postList != null && this.refs.postlist) {
             this.updateScrolling();
         }
@@ -556,7 +568,7 @@ export default class PostList extends React.Component {
         this.checkAndUpdateScrolling();
     }
 
-    childComponentDidUpdate() {
+    childComponentDidUpdate = () => {
         this.checkAndUpdateScrolling();
     }
 
@@ -646,35 +658,3 @@ export default class PostList extends React.Component {
         );
     }
 }
-
-PostList.defaultProps = {
-    lastViewed: 0,
-    lastViewedBottom: Number.MAX_VALUE,
-    ownNewMessage: false
-};
-
-PostList.propTypes = {
-    postList: React.PropTypes.object,
-    profiles: React.PropTypes.object,
-    channelId: React.PropTypes.string.isRequired,
-    channel: React.PropTypes.object,
-    currentUser: React.PropTypes.object,
-    scrollPostId: React.PropTypes.string,
-    scrollType: React.PropTypes.number,
-    postListScrolled: React.PropTypes.func.isRequired,
-    showMoreMessagesTop: React.PropTypes.bool,
-    showMoreMessagesBottom: React.PropTypes.bool,
-    lastViewed: React.PropTypes.number,
-    lastViewedBottom: React.PropTypes.number,
-    ownNewMessage: React.PropTypes.bool,
-    postsToHighlight: React.PropTypes.object,
-    displayNameType: React.PropTypes.string,
-    displayPostsInCenter: React.PropTypes.bool,
-    compactDisplay: React.PropTypes.bool,
-    previewsCollapsed: React.PropTypes.string,
-    useMilitaryTime: React.PropTypes.bool.isRequired,
-    isFocusPost: React.PropTypes.bool,
-    flaggedPosts: React.PropTypes.object,
-    statuses: React.PropTypes.object,
-    isBusy: React.PropTypes.bool
-};
